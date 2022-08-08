@@ -12,5 +12,6 @@ const config: Options = {
   dbName: "lireddit",
   type: "postgresql",
   debug: !__prod__,
+  allowGlobalContext: true,
 };
 export default config;
