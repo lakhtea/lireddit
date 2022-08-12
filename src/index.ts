@@ -25,7 +25,7 @@ const main = async () => {
 
   app.use(
     session({
-      name: "asfmjadsifnsdiua nuiwehnrgi uqhgnrwgf q",
+      name: "qid_lireddit_graphql",
       store: new RedisStore({ client: redisClient, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
