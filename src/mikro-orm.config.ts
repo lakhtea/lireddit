@@ -12,7 +12,7 @@ const config: Options = {
   entities: [Post, User],
   dbName: "lireddit",
   type: "postgresql",
-  debug: !__prod__,
+  debug: __prod__,
   allowGlobalContext: true,
 };
 export default config;
