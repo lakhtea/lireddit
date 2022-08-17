@@ -10,7 +10,7 @@ import { UserResolver } from "./resolvers/user";
 import { createClient } from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
-import { __prod__ } from "./constants";
+import { COOKIE_NAME, __prod__ } from "./constants";
 import { MyContext } from "./types";
 import cors from "cors";
 
@@ -33,20 +33,20 @@ const main = async () => {
 
   app.use(
     session({
-      name: "qid_lireddit_graphql",
+      name: COOKIE_NAME,
       store: new RedisStore({ client: redisClient, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: "none", //csrf
-        secure: true, //cookie only works in https,
+        sameSite: "lax", //csrf
+        secure: "auto", //cookie only works in https,
       },
       saveUninitialized: false,
       secret: "peepeepoopoo",
       resave: false,
     })
   );
-  app.set("trust proxy", 1);
+  app.set("trust proxy", !__prod__);
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
