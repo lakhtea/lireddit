@@ -9,10 +9,12 @@ import {
   Query,
   Resolver,
 } from "type-graphql";
-import { COOKIE_NAME } from "../constants";
+import { CHANGE_PASSWORD_PREFIX, COOKIE_NAME } from "../constants";
 import { User } from "../entities/User";
 import { MyContext } from "../types";
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import { sendEmail } from "../utils/sendEmail";
+import { v4 } from "uuid";
 
 @ObjectType()
 class FieldError {
@@ -37,9 +39,28 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { req, em }: MyContext
+    @Ctx() { em, redisClient }: MyContext
   ) {
-    // const user = await em.findOne(User, { email });
+    const user = await em.findOne(User, { email });
+
+    if (!user) {
+      return true;
+    }
+
+    const token = v4();
+
+    redisClient.set(
+      CHANGE_PASSWORD_PREFIX + token,
+      user.id,
+      "EX",
+      1000 * 60 * 60 * 24 * 3
+    );
+
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">Reset password</a>`
+    );
+
     return true;
   }
 
