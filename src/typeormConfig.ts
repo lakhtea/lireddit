@@ -1,16 +1,18 @@
-import { Post } from "./entities/Post";
-import { User } from "./entities/User";
-import { __prod__ } from "./constants";
+import path from "path";
 import { DataSource } from "typeorm";
+import { Post } from "./entities/Post";
+import { Updoot } from "./entities/Updoot";
+import { User } from "./entities/User";
 
 const config = new DataSource({
   type: "postgres",
   database: "lireddit2",
   username: "postgres",
   password: "postgres",
-  logging: true,
+  logging: false,
   synchronize: true,
-  entities: [User, Post],
+  entities: [User, Post, Updoot],
+  migrations: [path.join(__dirname, "./migrations/*")],
 });
 
 export default config;

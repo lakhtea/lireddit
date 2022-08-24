@@ -4,10 +4,12 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   Mutation,
   ObjectType,
   Query,
   Resolver,
+  Root,
 } from "type-graphql";
 import { CHANGE_PASSWORD_PREFIX, COOKIE_NAME } from "../constants";
 import { User } from "../entities/User";
@@ -34,8 +36,17 @@ class UserResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(() => User)
 export class UserResolver {
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    if (req.session.userId === user.id) {
+      return user.email;
+    }
+
+    return "";
+  }
+
   @Mutation(() => UserResponse)
   async changePassword(
     @Arg("token") token: string,
@@ -175,7 +186,12 @@ export class UserResolver {
     );
     if (!user) {
       return {
-        errors: [{ field: "username", message: "that username doesn't exist" }],
+        errors: [
+          {
+            field: "usernameOrEmail",
+            message: "that username or email doesn't exist",
+          },
+        ],
       };
     }
     const valid = await argon2.verify(user.password, password);

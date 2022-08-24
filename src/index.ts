@@ -17,6 +17,8 @@ const main = async () => {
   const dataSource = typeOrmConfig;
   await dataSource.initialize();
 
+  await dataSource.runMigrations();
+
   const app = express();
 
   const RedisStore = connectRedis(session);
