@@ -12,6 +12,8 @@ import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
+import { createUserLoader } from "./utils/createUserLoader";
+import { createUpdootLoader } from "./utils/createUpdootLoader";
 
 const main = async () => {
   const dataSource = typeOrmConfig;
@@ -57,6 +59,8 @@ const main = async () => {
       redisClient,
       req,
       res,
+      userLoader: createUserLoader(),
+      updootLoader: createUpdootLoader(),
     }),
     csrfPrevention: true,
   });

@@ -15,8 +15,9 @@ import {
 } from "type-graphql";
 import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
-import config from "../typeormConfig";
 import { Updoot } from "../entities/Updoot";
+import config from "../typeormConfig";
+import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -31,6 +32,7 @@ class PostInput {
 class PaginatedPosts {
   @Field(() => [Post])
   posts: Post[];
+
   @Field()
   hasMore: boolean;
 }
@@ -42,22 +44,58 @@ export class PostResolver {
     return root.text.slice(0, 50);
   }
 
+  @FieldResolver(() => User)
+  creator(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+    return userLoader.load(post.creatorId);
+  }
+
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(
+    @Root() post: Post,
+    @Ctx() { req, updootLoader }: MyContext
+  ) {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const updoot = await updootLoader.load({
+      postId: post.id,
+      userId: req.session.userId,
+    });
+
+    return updoot ? updoot.value : null;
+  }
+
   @Mutation(() => Boolean)
   async vote(
     @Arg("postId", () => Int) postId: number,
     @Arg("value", () => Int) value: number,
     @Ctx() { req }: MyContext
   ) {
+    const { userId } = req.session;
     const isUpdoot = value !== -1;
     const realValue = isUpdoot ? 1 : -1;
-    const { userId } = req.session;
     const post = await Post.findOneBy({ id: postId });
+    const updoot = await Updoot.findOneBy({ postId, userId });
 
     if (post) {
-      await Updoot.insert({ userId, postId, value: realValue });
-      post.points = post.points + realValue;
-      post.save();
-      return true;
+      if (!updoot) {
+        await Updoot.insert({ userId, postId, value: realValue });
+        post.points += realValue;
+        post.save();
+        return true;
+      } else if (updoot && updoot.value !== realValue) {
+        updoot.value = realValue;
+        updoot.save();
+        post.points += 2 * realValue;
+        post.save();
+        return true;
+      } else if (updoot && updoot.value === realValue) {
+        updoot.remove();
+        post.points -= realValue;
+        post.save();
+        return true;
+      }
     }
 
     return false;
@@ -75,7 +113,6 @@ export class PostResolver {
       .getRepository(Post)
       .createQueryBuilder("p")
       .orderBy("p.createdAt", "DESC")
-      .innerJoinAndSelect("p.creator", "u", "u.id = p.creatorId")
       .take(realLimitPlusOne);
 
     if (cursor) {
