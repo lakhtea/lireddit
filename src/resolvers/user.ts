@@ -132,12 +132,12 @@ export class UserResolver {
   }
 
   @Query(() => User, { nullable: true })
-  me(@Ctx() { req }: MyContext) {
+  async me(@Ctx() { req }: MyContext) {
     if (!req.session.userId) {
       return null;
     }
 
-    return User.findOneBy({ id: req.session.userId });
+    return await User.findOneBy({ id: req.session.userId });
   }
 
   @Mutation(() => UserResponse)

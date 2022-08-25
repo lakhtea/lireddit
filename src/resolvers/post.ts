@@ -130,7 +130,7 @@ export class PostResolver {
   }
 
   @Query(() => Post)
-  post(@Arg("id") id: number): Promise<Post | null> {
+  post(@Arg("id", () => Int) id: number): Promise<Post | null> {
     return Post.findOneBy({ id });
   }
 
@@ -150,19 +150,34 @@ export class PostResolver {
   @Mutation(() => Post, { nullable: true })
   async updatePost(
     @Arg("id") id: number,
-    @Arg("title", () => String, { nullable: true }) title: string
+    @Arg("title") title: string,
+    @Arg("text") text: string,
+    @Ctx() { req }: MyContext
   ): Promise<Post | null> {
-    const post = await Post.findOneBy({ id });
+    const post = await config
+      .getRepository(Post)
+      .createQueryBuilder("p")
+      .where("p.creatorId = :userId", { userId: req.session.userId })
+      .andWhere("p.id = :id", { id })
+      .getOne();
+
     if (!post) return null;
-    if (typeof title !== "undefined") {
-      Post.update({ id }, { title });
-    }
+
+    post.title = title;
+    post.text = text;
+    await post.save();
+
     return post;
   }
 
   @Mutation(() => Boolean)
-  async deletePost(@Arg("id") id: number): Promise<boolean> {
-    await Post.delete(id);
+  @UseMiddleware(isAuth)
+  async deletePost(
+    @Arg("id", () => Int) id: number,
+    @Ctx() { req }: MyContext
+  ): Promise<boolean> {
+    const post = await Post.findOneBy({ id, creatorId: req.session.userId });
+    post?.remove();
     return true;
   }
 }
